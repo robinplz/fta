@@ -14,8 +14,7 @@ class FlutterWindow : public Win32Window {
  public:
   // Creates a new FlutterWindow driven by the |run_loop|, hosting a
   // Flutter view running |project|.
-  explicit FlutterWindow(RunLoop* run_loop,
-                         const flutter::DartProject& project);
+  FlutterWindow(RunLoop* run_loop, const flutter::DartProject& project);
   virtual ~FlutterWindow();
 
  protected:

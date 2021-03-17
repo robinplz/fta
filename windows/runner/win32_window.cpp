@@ -174,12 +174,19 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
     }
     case WM_SIZE: {
-      RECT rect = GetClientArea();
-      if (child_content_ != nullptr) {
-        // Size and position the child window.
-        MoveWindow(child_content_, rect.left, rect.top, rect.right - rect.left,
-                   rect.bottom - rect.top, TRUE);
-      }
+      OnSize(LOWORD(lparam), HIWORD(lparam));
+
+      // RECT rect = GetClientArea();
+      // if (child_content_ != nullptr) {
+      //   // Size and position the child window.
+      //   MoveWindow(child_content_, rect.left, rect.top, rect.right - rect.left,
+      //              rect.bottom - rect.top, TRUE);
+      // }
+      AlignChildWindow();
+      return 0;
+    }
+    case WM_MOVE: {
+      AlignChildWindow();
       return 0;
     }
 
@@ -187,6 +194,10 @@ Win32Window::MessageHandler(HWND hwnd,
       if (child_content_ != nullptr) {
         SetFocus(child_content_);
       }
+      return 0;
+
+    case WM_PAINT:
+      OnPaint();
       return 0;
   }
 
@@ -213,10 +224,10 @@ Win32Window* Win32Window::GetThisFromHandle(HWND const window) noexcept {
 void Win32Window::SetChildContent(HWND content) {
   child_content_ = content;
   SetParent(content, window_handle_);
-  RECT frame = GetClientArea();
+  // RECT frame = GetClientArea();
 
-  MoveWindow(content, frame.left, frame.top, frame.right - frame.left,
-             frame.bottom - frame.top, true);
+  // MoveWindow(content, frame.left, frame.top, frame.right - frame.left,
+  //            frame.bottom - frame.top, true);
 
   SetFocus(child_content_);
 }
@@ -235,11 +246,44 @@ void Win32Window::SetQuitOnClose(bool quit_on_close) {
   quit_on_close_ = quit_on_close;
 }
 
+void Win32Window::AlignChildWindow() {
+  if (child_content_) {
+    auto GetW = [](RECT rc) {
+      return rc.right - rc.left;
+    };
+    auto GetH = [](RECT rc) {
+      return rc.bottom - rc.top;
+    };
+
+    RECT clientRect;
+    GetClientRect(GetHandle(), &clientRect);
+    POINT point;
+    point.x = 0;
+    point.y = 0;
+    ClientToScreen(GetHandle(), &point);
+    LONG clientWidth = GetW(clientRect);
+    LONG clientHeight = GetH(clientRect);
+
+    // child window size is supported to be the same as "Client" area.
+    int x = point.x;
+    int y = point.y;
+    MoveWindow(child_content_, x, y, clientWidth, clientHeight, true);
+  }
+}
+
 bool Win32Window::OnCreate() {
   // No-op; provided for subclasses.
   return true;
 }
 
 void Win32Window::OnDestroy() {
+  // No-op; provided for subclasses.
+}
+
+void Win32Window::OnPaint() {
+  // No-op; provided for subclasses.
+}
+
+void Win32Window::OnSize(int w, int h) {
   // No-op; provided for subclasses.
 }

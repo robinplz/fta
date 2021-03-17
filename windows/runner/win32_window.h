@@ -54,6 +54,8 @@ class Win32Window {
   // Return a RECT representing the bounds of the current client area.
   RECT GetClientArea();
 
+  void AlignChildWindow();
+
  protected:
   // Processes and route salient window messages for mouse handling,
   // size change and DPI. Delegates handling of these to member overloads that
@@ -69,6 +71,9 @@ class Win32Window {
 
   // Called when Destroy is called.
   virtual void OnDestroy();
+
+  virtual void OnPaint();
+  virtual void OnSize(int w, int h);
 
  private:
   friend class WindowClassRegistrar;

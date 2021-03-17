@@ -1,4 +1,5 @@
 #include "flutter_window.h"
+#include "dwmapi.h"
 
 #include <optional>
 
@@ -27,7 +28,33 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   run_loop_->RegisterFlutterInstance(flutter_controller_->engine());
-  SetChildContent(flutter_controller_->view()->GetNativeWindow());
+
+  // we'll make the content window a 'detached' one.
+  HWND contentWindow = flutter_controller_->view()->GetNativeWindow();
+
+  // remove WS_CHILD style
+  LONG style = GetWindowLong(contentWindow, GWL_STYLE);
+  style &= (~WS_CHILD);
+  SetWindowLong(contentWindow, GWL_STYLE, style);
+
+  // set the content window as a logical 'child' of main window.
+  SetChildContent(contentWindow);
+  SetParent(contentWindow, nullptr);
+
+  // then make main window the 'owner' of the content window.
+  SetWindowLongPtr(contentWindow, GWLP_HWNDPARENT, (LONG_PTR)GetHandle());
+  SetWindowPos(contentWindow, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+
+  // make windows positions aligned.
+  AlignChildWindow();
+
+  // then make content window background 'transparent' =>
+  // Negative margins have special meaning to DwmExtendFrameIntoClientArea.
+  // Negative margins create the "sheet of glass" effect, where the client area
+  // is rendered as a solid surface with no window border.
+  MARGINS margins = {-1};
+  DwmExtendFrameIntoClientArea(contentWindow, &margins);
+
   return true;
 }
 
