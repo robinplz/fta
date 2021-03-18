@@ -4,13 +4,22 @@
 #include <GL/gl.h>
 
 HGLRC hRC;
+UINT_PTR GL_ROTATE_TIMER = 100;
+UINT_PTR timerId;
+
+VOID OnTimer(HWND hWnd, UINT msg, UINT_PTR timer, DWORD tick) {
+    if (timer == GL_ROTATE_TIMER) {
+        glRotatef(1.0f, 0.0f, 0.0f, 1.0f);
+        InvalidateRect(hWnd, nullptr, false);
+    }
+}
 
 void display(HDC hDC)
 {
     /* rotate a triangle around */
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-	glRotatef(1.0f, 0.0f, 0.0f, 1.0f);
+	
     glBegin(GL_TRIANGLES);
     glIndexi(1);
     glColor3f(1.0f, 0.0f, 0.0f);
@@ -55,12 +64,15 @@ bool GLWindow::OnCreate() {
 
     ReleaseDC(GetHandle(), hDC);
 
+    timerId = SetTimer(GetHandle(), GL_ROTATE_TIMER, 16, OnTimer);
+
     return true;
 }
 
 void GLWindow::OnDestroy() {
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hRC);
+    KillTimer(GetHandle(), timerId);
 
     FlutterWindow::OnDestroy();
 }
