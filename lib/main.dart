@@ -1,6 +1,15 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/gestures.dart';
+import 'dart:ffi' as ffi;
 
+import 'package:flutter/material.dart';
+import 'dart:developer' as Developer;
+import 'generated_bindings.dart';
+
+late AppCoreAPI api;
 void main() {
+  var lib = ffi.DynamicLibrary.executable();
+  api = AppCoreAPI(lib);
+
   runApp(MyApp());
 }
 
@@ -48,6 +57,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  String? _userInput;
+  bool _isTyping = false;
 
   void _incrementCounter() {
     setState(() {
@@ -58,6 +69,31 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+  }
+
+  void _updateInput(String value) {
+    setState(() {
+      _userInput = value;
+      _isTyping = true;
+    });
+  }
+
+  void _submitInput() {
+    setState(() {
+      _isTyping = false;
+    });
+  }
+
+  String _renderUserInputText() {
+    if (_userInput == null) {
+      return '(no input)';
+    }
+
+    if (_isTyping) {
+      return 'typing: $_userInput ...';
+    }
+
+    return _userInput!;
   }
 
   @override
@@ -74,37 +110,74 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title!),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-              style: TextStyle(color: Theme.of(context).accentColor),
-            ),
-            Text(
-              '$_counter',
-              style: TextStyle(color: Theme.of(context).accentColor),
-            ),
-          ],
+      body: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerMove: (event) {
+          var pos = event.position;
+          var id = event.pointer;
+          Developer.log('onPointerMove: x:${pos.dx} y:${pos.dy}',
+              name: 'gesture');
+
+          // send to app-core
+          api.sendPointerEvent(pos.dx, pos.dy);
+        },
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 240,
+                child: TextField(
+                  onChanged: (value) {
+                    _updateInput(value);
+                  },
+                  onSubmitted: (value) {
+                    _submitInput();
+                  },
+                ),
+              ),
+              Text(
+                _renderUserInputText(),
+                style: TextStyle(color: Theme.of(context).accentColor),
+              ),
+              Text(
+                'You have pushed the button this many times:',
+                style: TextStyle(color: Theme.of(context).accentColor),
+              ),
+              Text(
+                '$_counter',
+                style: TextStyle(color: Theme.of(context).accentColor),
+              ),
+            ],
+          ),
         ),
       ),
+      // body: GestureDetector(
+      //   behavior: HitTestBehavior.opaque,
+      //   onTap: () {
+      //     Developer.log('onTap', name: 'gesture');
+      //   },
+      //   onPanUpdate: (details) {
+      //     Developer.log(
+      //         'onPanUpdate: global position: ${details.globalPosition}',
+      //         name: 'gesture');
+      //   },
+      //   child: Center(
+      //     child: Column(
+      //       mainAxisAlignment: MainAxisAlignment.center,
+      //       children: <Widget>[
+      //         Text(
+      //           'You have pushed the button this many times:',
+      //           style: TextStyle(color: Theme.of(context).accentColor),
+      //         ),
+      //         Text(
+      //           '$_counter',
+      //           style: TextStyle(color: Theme.of(context).accentColor),
+      //         ),
+      //       ],
+      //     ),
+      //   ),
+      // ),
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
         tooltip: 'Increment',

@@ -3,6 +3,8 @@
 #include <windows.h>			/* must include this before GL/gl.h */
 #include <GL/gl.h>
 
+#include "../../app-core/app-core-native-api.h"
+
 HGLRC hRC;
 UINT_PTR GL_ROTATE_TIMER = 100;
 UINT_PTR timerId;
@@ -14,6 +16,38 @@ VOID OnTimer(HWND hWnd, UINT msg, UINT_PTR timer, DWORD tick) {
     }
 }
 
+HWND targetWindow = nullptr;
+float vertices[2] = {0.0f, 1.0f};
+
+void onUpdate() {
+    if (!targetWindow) {
+        return;
+    }
+
+    UINT dpiRaw = GetDpiForWindow(targetWindow);
+    const float DPI = float(dpiRaw) / 96.0f;
+
+    auto p = getPointerPoint();
+    float x = p.x;
+    float y = p.y;
+    RECT clientRect;
+    GetClientRect(targetWindow, &clientRect);
+    float w = float(clientRect.right - clientRect.left) / DPI;
+    float h = float(clientRect.bottom - clientRect.top) / DPI;
+    y = h - y; // y-direction flipped
+    float halfW = w * 0.5f;
+    float halfH = h * 0.5f;
+    x -= halfW;
+    y -= halfH;
+    float coordX = x / halfW;
+    float coordY = y / halfH;
+    vertices[0] = coordX;
+    vertices[1] = coordY;
+
+    PostMessage(targetWindow, WM_PAINT, 0, 0);
+    // InvalidateRect(targetWindow, nullptr, false);
+}
+
 void display(HDC hDC)
 {
     /* rotate a triangle around */
@@ -23,7 +57,7 @@ void display(HDC hDC)
     glBegin(GL_TRIANGLES);
     glIndexi(1);
     glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex2i(0,  1);
+    glVertex2f(vertices[0], vertices[1]);
     glIndexi(2);
     glColor3f(0.0f, 1.0f, 0.0f);
     glVertex2i(-1, -1);
@@ -64,7 +98,10 @@ bool GLWindow::OnCreate() {
 
     ReleaseDC(GetHandle(), hDC);
 
-    timerId = SetTimer(GetHandle(), GL_ROTATE_TIMER, 16, OnTimer);
+    // timerId = SetTimer(GetHandle(), GL_ROTATE_TIMER, 16, OnTimer);
+
+    targetWindow = GetHandle();
+    setCallback(onUpdate);
 
     return true;
 }
@@ -72,7 +109,7 @@ bool GLWindow::OnCreate() {
 void GLWindow::OnDestroy() {
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hRC);
-    KillTimer(GetHandle(), timerId);
+    // KillTimer(GetHandle(), timerId);
 
     FlutterWindow::OnDestroy();
 }

@@ -1,0 +1,9 @@
+---
+output: 'lib/generated_bindings.dart'
+name: 'AppCoreAPI'
+description: 'AppCore APIs'
+llvm-path: 
+  - 'D:\Developer\LLVM\'
+headers:
+  entry-points:
+    - 'app-core/app-core-api.h'
